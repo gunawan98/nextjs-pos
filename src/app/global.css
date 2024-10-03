@@ -1,0 +1,29 @@
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  
+  #print-section, #print-section * {
+    visibility: visible;
+  }
+  
+	#print-section {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 58mm;
+		font-size: 1rem;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; /* Pusatkan secara horizontal */
+  }
+  
+  /* Atur agar halaman tidak memiliki margin atau padding tambahan */
+  @page {
+    size: 58mm auto; /* Lebar halaman 58mm, tinggi auto sesuai konten */
+    /* margin: 0; Hilangkan margin halaman */
+  }
+}
+

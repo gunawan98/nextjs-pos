@@ -12,8 +12,8 @@ export async function GET(request) {
   }
 
   try {
-    const productResponse = await fetch(
-      `${process.env.HOST_NAME}/api/product`,
+    const cartResponse = await fetch(
+      `${process.env.HOST_NAME}/api/cart/finished`,
       {
         method: "GET",
         headers: {
@@ -23,27 +23,27 @@ export async function GET(request) {
       }
     );
 
-    if (!productResponse.ok) {
+    if (!cartResponse.ok) {
       return NextResponse.json(
-        { message: "Failed to fetch products" },
-        { status: productResponse.status }
+        { message: "Failed to fetch carts" },
+        { status: cartResponse.status }
       );
     }
 
-    const products = await productResponse.json();
+    const carts = await cartResponse.json();
 
     // If the response already has cookies set, return that response
     if (response) {
       // Here, response.json is not a method. We need to create a new response with the product data.
-      const newResponse = NextResponse.json(products, { status: 200 });
+      const newResponse = NextResponse.json(carts, { status: 200 });
       newResponse.headers.set("Set-Cookie", response.headers.get("Set-Cookie"));
       return newResponse;
     }
 
     // Otherwise, just return the product data
-    return NextResponse.json(products, { status: 200 });
+    return NextResponse.json(carts, { status: 200 });
   } catch (error) {
-    console.error("Error fetching products:", error);
+    console.error("Error fetching carts:", error);
     return NextResponse.json(
       { message: "Internal Server Error" },
       { status: 500 }

@@ -6,27 +6,37 @@ export async function middleware(request) {
 
   const accessToken = request.cookies.get("accessToken")?.value;
   const refreshToken = request.cookies.get("refreshToken")?.value;
+  // const accessValidUntil = request.cookies.get("accessValidUntil")?.value;
+  const refreshValidUntil = request.cookies.get("refreshValidUntil")?.value;
+
+  const now = new Date();
+
+  // const isAccessTokenExpired =
+  //   accessValidUntil && new Date(accessValidUntil) <= now;
+  const isRefreshTokenExpired =
+    refreshValidUntil && new Date(refreshValidUntil) <= now;
 
   // Redirect to dashboard if user is authenticated and tries to access the login page
-  if (accessToken && pathname === "/login") {
+  if (refreshToken && !isRefreshTokenExpired && pathname === "/login") {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // Redirect to login if no access token and user tries to access protected pages
+  // Redirect to login if no access token or if the token is expired and the user tries to access protected pages
   const protectedPaths = ["/dashboard", "/profile", "/api/product"];
   const isProtected = protectedPaths.some((path) => pathname.startsWith(path));
 
-  if (!accessToken && isProtected) {
-    return NextResponse.redirect(new URL("/login", request.url));
+  if (!refreshToken || isRefreshTokenExpired) {
+    if (isProtected) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
   }
 
-  // (Optional) Implement token expiration check here
-  const isTokenExpired = false; // Replace with actual token expiration logic
-
-  if (isTokenExpired && refreshToken) {
-    // Attempt to refresh the access token
+  // Attempt to refresh the access token if it's expired but the refresh token is still valid
+  if (!accessToken && refreshToken && !isRefreshTokenExpired) {
     try {
-      const refreshResponse = await fetch("/api/refresh-token", {
+      const refreshURL = new URL("/api/refresh-token", request.url);
+
+      const refreshResponse = await fetch(refreshURL.href, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -36,15 +46,34 @@ export async function middleware(request) {
 
       if (refreshResponse.ok) {
         const newTokens = await refreshResponse.json();
-
-        // Update cookies with new tokens
         const response = NextResponse.next();
-        response.cookies.set("accessToken", newTokens.accessToken);
-        response.cookies.set("refreshToken", newTokens.refreshToken);
+        response.cookies.set("accessToken", newTokens.accessToken, {
+          path: "/",
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          expires: new Date(newTokens.accessValidUntil),
+        });
+        response.cookies.set("accessValidUntil", newTokens.accessValidUntil, {
+          path: "/",
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          expires: new Date(newTokens.accessValidUntil),
+        });
+        response.cookies.set("refreshToken", newTokens.refreshToken, {
+          path: "/",
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          expires: new Date(newTokens.refreshValidUntil),
+        });
+        response.cookies.set("refreshValidUntil", newTokens.refreshValidUntil, {
+          path: "/",
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          expires: new Date(newTokens.refreshValidUntil),
+        });
 
         return response;
       } else {
-        // Refresh token failed, redirect to login
         return NextResponse.redirect(new URL("/login", request.url));
       }
     } catch (error) {
@@ -57,5 +86,11 @@ export async function middleware(request) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/profile/:path*", "/login", "/api/product"],
+  matcher: [
+    "/dashboard/:path*",
+    "/purchase/:path*",
+    "/profile/:path*",
+    "/login",
+    "/api/product",
+  ],
 };

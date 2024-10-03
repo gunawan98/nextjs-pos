@@ -15,7 +15,6 @@ export default function ProductList() {
         const response = await fetch("/api/product");
 
         if (response.status === 401) {
-          // Not authenticated, redirect to login
           router.push("/login");
           return;
         }
@@ -43,12 +42,12 @@ export default function ProductList() {
   if (error) return <div>Error: {error}</div>;
 
   return (
-    <div>
+    <>
       <h1>Products</h1>
       <ul>
         {products &&
           products.map((product) => <li key={product.id}>{product.name}</li>)}
       </ul>
-    </div>
+    </>
   );
 }

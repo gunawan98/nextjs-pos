@@ -11,9 +11,20 @@ export async function GET(request) {
     );
   }
 
+  // Parse the request URL to get the cartId
+  const { searchParams } = new URL(request.url);
+  const cartID = searchParams.get("cartId");
+
+  if (!cartID) {
+    return NextResponse.json(
+      { message: "Cart ID is required" },
+      { status: 400 }
+    );
+  }
+
   try {
     const productResponse = await fetch(
-      `${process.env.HOST_NAME}/api/product`,
+      `${process.env.HOST_NAME}/api/cart-item/${cartID}`,
       {
         method: "GET",
         headers: {
@@ -25,7 +36,7 @@ export async function GET(request) {
 
     if (!productResponse.ok) {
       return NextResponse.json(
-        { message: "Failed to fetch products" },
+        { message: "Failed to fetch cart items" },
         { status: productResponse.status }
       );
     }
@@ -34,16 +45,14 @@ export async function GET(request) {
 
     // If the response already has cookies set, return that response
     if (response) {
-      // Here, response.json is not a method. We need to create a new response with the product data.
       const newResponse = NextResponse.json(products, { status: 200 });
       newResponse.headers.set("Set-Cookie", response.headers.get("Set-Cookie"));
       return newResponse;
     }
 
-    // Otherwise, just return the product data
     return NextResponse.json(products, { status: 200 });
   } catch (error) {
-    console.error("Error fetching products:", error);
+    console.error("Error fetching cart items:", error);
     return NextResponse.json(
       { message: "Internal Server Error" },
       { status: 500 }
